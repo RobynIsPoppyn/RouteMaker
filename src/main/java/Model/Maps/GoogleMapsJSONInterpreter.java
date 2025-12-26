@@ -10,13 +10,14 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 
-public class GoogleMapsJSONInterpreter implements MapJSONInterpreter {
+public class GoogleMapsJSONInterpreter extends MapJSONInterpreter {
     //Creates a Route Java Object from Google Map's API Output, giving it default name "Route"
     public Route getRoute(String JSONInput){
 
         return getRoute("Route", JSONInput);
     }
 
+    @Override
     //Creates a Route Java Object from Google Map's API Output and names it
     public Route getRoute(String name, String JSONInput){
 
@@ -50,6 +51,7 @@ public class GoogleMapsJSONInterpreter implements MapJSONInterpreter {
                 ret.getSteps().add(new Step(
                         new Waypoint((JSONObject) ( (JSONObject) (stepsList.get(0))).get("startLocation")),
                         new Waypoint((JSONObject) ( (JSONObject) (stepsList.get(0))).get("endLocation")),
+                        stepsList.getJSONObject(0).getInt("durationSec"),
                         ((JSONObject)stepsList.get(0)).get("navigationInstruction").toString()));
                 stepsList.remove(0);
             }
@@ -60,43 +62,6 @@ public class GoogleMapsJSONInterpreter implements MapJSONInterpreter {
         return ret;
     }
 
-    //Turns an array list of routes into a JSON formatted string
-    public String  routesToJSON(ArrayList<Route> routes){
-
-        try{
-            JSONObject result = new JSONObject("{\"routes\":[]}");
-            int i = 0;
-
-
-            for (Route r : routes) {
-                //Create a route then insert it into routes
-                JSONObject currRoute = new JSONObject();
-                currRoute.put("name", r.name());
-                currRoute.put("distanceMeters", r.distanceMeters());
-                currRoute.put("durationSec", r.durationSec());
-                result.append("routes", currRoute);
-
-                //Iterate through a route's steps, creating a JSON object to insert into the step array
-                System.out.println(result);
-                for (Step s : r.getSteps()) {
-                    JSONObject currStep = new JSONObject();
-                    currStep.put("startLat", s.startpoint().latitude());
-                    currStep.put("startLong", s.startpoint().longitude());
-                    currStep.put("endLat", s.startpoint().latitude());
-                    currStep.put("endLat", s.startpoint().longitude());
-                    currStep.put("instruction", s.instruction());
-                    ((JSONObject) ((JSONArray)result.get("routes")).get(i)).append("steps", currStep);
-                }
-                i++;
-            }
-            System.out.println((result));
-            return result.toString();
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-
-        return null;
-    }
 
 
 

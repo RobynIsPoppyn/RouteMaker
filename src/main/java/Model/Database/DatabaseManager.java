@@ -48,7 +48,7 @@ public class DatabaseManager {
     }
 
     //Create entry into Route table using Route java bean, also inserts corresponding steps in table
-    public static void createRoute(Connection connection, Route route) throws Exception{
+    public static void insertRoute(Connection connection, Route route) throws Exception{
 
         var insertSql = "insert into ROUTES (name, distanceMeters, durationSec) values (?,?,?)";
         var preparedStatement = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
@@ -58,25 +58,27 @@ public class DatabaseManager {
         preparedStatement.setFloat(3, route.durationSec());
         preparedStatement.execute();
 
+        //Get the route ID to pass to the steps
         ResultSet keys = preparedStatement.getGeneratedKeys();
         if (!keys.next())
             return;
 
-        enterStepsFromRoute(connection, keys.getInt(1), route);
+        insertStepsFromRoute(connection, keys.getInt(1), route);
 
         System.out.println("Record Created");
     }
 
-    private static void enterStepsFromRoute(Connection connection, int routeID, Route route) throws SQLException {
-        var insertStepSql = "insert into STEPS (routeID, instruction, startLong, startLat, endLong, endLat) values (?,?,?,?,?,?)";
+    private static void insertStepsFromRoute(Connection connection, int routeID, Route route) throws SQLException {
+        var insertStepSql = QueryManager.getQuery("insertStep");
         for (Step s : route.getSteps()){
             PreparedStatement statement = connection.prepareStatement(insertStepSql);
             statement.setInt(1, routeID);
             statement.setString(2, s.instruction());
-            statement.setDouble(3, s.startpoint().longitude());
-            statement.setDouble(4, s.startpoint().latitude());
-            statement.setDouble(5, s.endpoint().longitude());
-            statement.setDouble(6, s.endpoint().latitude());
+            statement.setInt(3, s.durationSec());
+            statement.setDouble(4, s.startpoint().longitude());
+            statement.setDouble(5, s.startpoint().latitude());
+            statement.setDouble(6, s.endpoint().longitude());
+            statement.setDouble(7, s.endpoint().latitude());
 
             statement.execute();
         }
@@ -104,7 +106,7 @@ public class DatabaseManager {
 
         while(resultSet.next()){
             var stepStatement = connection.createStatement();
-            ret.add(new Route(
+            ret.add(new Route(resultSet.getInt("id"),
                     resultSet.getString("name"),
                     new LinkedList<Step>(),
                     resultSet.getFloat("distanceMeters"),
@@ -115,8 +117,31 @@ public class DatabaseManager {
         return ret;
     }
 
-    //Create a list of Steps from a resultSet
-    public static LinkedList<Step> parseSteps(ResultSet results) throws SQLException{
+    public static ArrayList<Route> getAllRoutes(Connection connection) throws SQLException{
+        //First select every route from database
+        var selectSql = "SELECT id, name, distanceMeters, durationSec FROM ROUTES";
+        var selectSteps = QueryManager.getQuery("selectSteps");
+
+        var statement = connection.createStatement();
+        var resultSet = statement.executeQuery(selectSql);
+
+        ArrayList<Route> ret = new ArrayList<Route>();
+
+        while(resultSet.next()){
+            var stepStatement = connection.createStatement();
+            ret.add(new Route(
+                    resultSet.getInt("id"),
+                    resultSet.getString("name"),
+                    new LinkedList<Step>(),
+                    resultSet.getFloat("distanceMeters"),
+                    resultSet.getFloat("durationSec")));
+            var stepResults = stepStatement.executeQuery(selectSteps.concat(String.valueOf(resultSet.getInt("id"))));
+            ret.get(ret.size() - 1).steps().addAll(parseSteps(stepResults));
+        }
+        return ret;
+    }
+    //Create a list of Java Steps from a resultSet acquired from Steps Table, used internally
+    private static LinkedList<Step> parseSteps(ResultSet results) throws SQLException{
 
         LinkedList<Step> ret = new LinkedList<>();
         while(results.next()){
@@ -127,6 +152,7 @@ public class DatabaseManager {
                     new Waypoint(
                         results.getFloat("endLat"),
                         results.getFloat("endLong")),
+                    results.getInt("durationSec"),
                     results.getString("instruction"))
             );
         }
@@ -159,7 +185,7 @@ public class DatabaseManager {
 
     }
 
-    public static void updateRouteWithID(Connection connection, int id, Route updatedRoute) throws SQLException {
+    public static int updateRouteWithID(Connection connection, int id, Route updatedRoute) throws SQLException {
 
         //First update the Route, simple sql execution
         var updateSql = QueryManager.getQuery("updateRoute");
@@ -167,15 +193,25 @@ public class DatabaseManager {
         preparedStatement.setString(1, updatedRoute.name());
         preparedStatement.setFloat(2, updatedRoute.distanceMeters());
         preparedStatement.setFloat(3, updatedRoute.durationSec());
-        preparedStatement.execute();
 
-        //Delete each row that was a previous step before
+        int rowsAffected = preparedStatement.executeUpdate();
+
+        if(rowsAffected == 0) {
+            return 0;
+        }
+        //Delete each row that was a previous step before so that they can be reset
+        //This ensure that if the number of steps changes, no complications arise
         var selectStepsSql = QueryManager.getQuery("deleteSteps");
         preparedStatement = connection.prepareStatement(selectStepsSql + id);
         preparedStatement.execute();
 
         //For each step in the new Route, add this to the table
-        enterStepsFromRoute(connection, id, updatedRoute);
+        insertStepsFromRoute(connection, id, updatedRoute);
         System.out.println("Record Updated!");
+        return rowsAffected;
     }
+
+
+
+
 }
