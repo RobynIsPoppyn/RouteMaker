@@ -2,15 +2,11 @@ package Model;
 
 import Model.Beans.Waypoint;
 import Model.Database.DatabaseManager;
-import Model.Maps.GoogleMapsJSONInterpreter;
-import Model.Maps.GoogleMapsAccessor;
 import Model.Maps.MapboxAccessor;
-import Model.Maps.MapboxJSONInterpreter;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
 
 import io.javalin.Javalin;
 
@@ -26,49 +22,32 @@ public class Main {
 
 
 
-    static final String JDBC_URL = "jdbc:postgresql://localhost:5432/student?" +
-            "currentScheme=public&user=postgres&password=password";
+
     public static void main(String[] args) throws SQLException {
+        final String JDBC_URL = System.getenv("JDBC_URL");
+            System.out.println(JDBC_URL);
 
-
-
-//        System.out.println();
-       // String s = MapsAccessor.postMapsRoute(test1, test2).body();
-       // System.out.println(s);
-        ArrayList<Waypoint> testList = new ArrayList<>();
-
-        testList.add(test1);
-        testList.add(test2);
-        //testList.add(test3);
-       // testList.add(test4);
-        //testList.add(test5);
-        //testList.add(test6);
 
         MapboxAccessor mapbox = new MapboxAccessor();
-        String s = mapbox.obtainMapRoute(testList).body();
-        System.out.println(s);
+       // String s = mapbox.obtainMapRoute(testList).body();
+       // System.out.println(s);
         Connection c = DriverManager.getConnection(JDBC_URL);
-        try {
-            //DatabaseManager.dropRouteTable(c);
-            //DatabaseManager.createTable(c, JDBC_URL);
-            MapboxJSONInterpreter mapboxJSON = new MapboxJSONInterpreter();
-            DatabaseManager.createRoute(c, mapboxJSON.getRoute("Long test", s));
-
-            //JSONInterpreter.routesToJSON(DatabaseManager.getRoutesOfName(c,"NewRoute"));
-
-         //  Route alternateTest = JSONInterpreter.getRoute("NewRoute", MapsAccessor.postMapsRoute(test2, test1).body());
-         //   System.out.println(alternateTest);
-            //DatabaseManager.updateRouteWithID(c, 1, alternateTest);
-
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        c.close();
-
-
+        //DatabaseManager.dropRouteTable(c);
+        DatabaseManager.createTable(c, JDBC_URL);
         var app = Javalin.create()
                 .get("/", ctx -> ctx.result("Hello World"))
                 .start(8080);
+        JavalinManager javalinManager = new JavalinManager(new DatabaseManager(), c, mapbox);
+
+        app.get("/mapRoute", javalinManager.getRouteFromMap);
+        app.post("/mapRoute", javalinManager.saveRouteFromMapToDatabase);
+        app.put("/mapRoute", javalinManager.updateRouteInDatabase);
+
+
+        app.get("/savedRoutes", javalinManager.getAllRoutesFromDatabase);
+        app.put("/savedRoutes", javalinManager.updateRouteInDatabase);
+        app.post("/savedRoutes", javalinManager.saveRouteToDatabase);
+        app.delete("/savedRoutes", javalinManager.deleteRouteWithID);
 
     }
 }

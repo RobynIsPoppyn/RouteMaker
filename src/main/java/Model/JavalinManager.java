@@ -39,9 +39,7 @@ public class JavalinManager {
         String waypoints = ctx.queryParam("locations");
 
         String [] splitLocations = waypoints.replaceAll("%2C", ",").split(";");
-        for (String s : splitLocations){
-            System.out.println(s);
-        }
+
         ArrayList<Waypoint> processedWaypoints = new ArrayList<>();
         for (String s : splitLocations){
             processedWaypoints.add(new Waypoint(
@@ -77,6 +75,8 @@ public class JavalinManager {
         DatabaseManager.insertRoute(connection, routeFromJSON(ctx.body()));
     };
 
+
+
     public Handler updateRouteInDatabase = ctx -> {
         try {
             Integer routeID = Integer.parseInt(ctx.queryParam("id"));
@@ -100,14 +100,17 @@ public class JavalinManager {
 
     private Route routeFromJSON(String json){
         JSONObject input = new JSONObject(json);
+        System.out.println(input.toString());
+
         return new Route(
                 input.getInt("id"),
                 input.getString("name"),
                 stepsFromJSON(input.getJSONArray("steps").toString()),
                 input.getInt("distanceMeters"),
                 input.getInt("durationSec"));
-
     }
+
+
 
     private LinkedList<Step> stepsFromJSON(String json){
         LinkedList<Step> output = new LinkedList<>();
@@ -119,7 +122,7 @@ public class JavalinManager {
                             currStep.getDouble("startLat"),
                             currStep.getDouble("startLong")),
                     new Waypoint(
-                            currStep.getDouble("startLat"),
+                            currStep.getDouble("endLat"),
                             currStep.getDouble("endLong")),
                     currStep.getInt("durationSec"),
                     currStep.getString("instruction")));

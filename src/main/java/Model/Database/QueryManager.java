@@ -16,7 +16,7 @@ public class QueryManager {
     //while ensuring the properties variable is a singleton
     private static Properties getQueries() throws SQLException {
         try {
-            InputStream inStream = new FileInputStream("src/main/java/Model/Database/queries.properties");
+            InputStream inStream = QueryManager.class.getClassLoader().getResourceAsStream("queries.properties");
             if (inStream == null) {
                 throw new SQLException("Unable to load query file");
             }
@@ -29,7 +29,7 @@ public class QueryManager {
                 }
             }
             return props;
-        }catch(FileNotFoundException e){
+        }catch(Exception e){
             e.printStackTrace();
         }
         return null;

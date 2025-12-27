@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class MapboxAccessor implements MapAccessor {
 
-    static String apiKey = "sk.eyJ1IjoicmRlY2FzdHJvNDcwIiwiYSI6ImNtaml5YWt6MjF0eTAzZXB5cW15NWg5bnYifQ.06voI91DC3JjaaMnVD7u1g";
+    static String apiKey = System.getenv("MAPBOX_API_KEY");
 
     //Temporary test values
 

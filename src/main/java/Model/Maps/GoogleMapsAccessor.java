@@ -13,7 +13,7 @@ import java.util.ArrayList;
 
 public class GoogleMapsAccessor implements MapAccessor{
 
-    static String apiKey = "AIzaSyDuAjCLvW7pgVxTKFIvlOlVT9EoMLBG1xY";
+    static String apiKey = "";
 
     //Temporary test values
 

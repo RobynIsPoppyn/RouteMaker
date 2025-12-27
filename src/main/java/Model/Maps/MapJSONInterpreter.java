@@ -36,7 +36,7 @@ public abstract class MapJSONInterpreter {
                     currStep.put("startLat", s.startpoint().latitude());
                     currStep.put("startLong", s.startpoint().longitude());
                     currStep.put("endLat", s.startpoint().latitude());
-                    currStep.put("endLat", s.startpoint().longitude());
+                    currStep.put("endLong", s.startpoint().longitude());
                     currStep.put("instruction", s.instruction());
                     currStep.put("durationSec", s.durationSec());
                     ((JSONObject) ((JSONArray)result.get("routes")).get(i)).append("steps", currStep);
